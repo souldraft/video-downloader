@@ -741,7 +741,7 @@ GITHUB_URL = "https://github.com/souldraft?tab=repositories"  # the GitHub butto
 
 # ---- Support form + Get Pro. Fill in SUPPORT_URL and BUY_URL when those services are live. ----
 SUPPORT_EMAIL = "vteam732@gmail.com"
-SUPPORT_URL = ""  # Google Apps Script web-app URL (ends in /exec), see support-server/SETUP.md. Empty = email fallback.
+SUPPORT_URL = "https://script.google.com/macros/s/AKfycbzA3HB7hV-zmxkvKJ0OFz1NisE3Zg7Y-iAioJdbe_nyguZ_z8chWp63EAdrA4JVs0mASg/exec" # Google Apps Script web-app URL (ends in /exec), see support-server/SETUP.md. Empty = email fallback.
 SUPPORT_APP_KEY = "vd-support-v1"  # not a secret, only stops random web bots; must match APP_KEY in support-server/Code.gs
 BUY_URL = ""  # payment page (Dodo Payments / Gumroad checkout link). Empty = "Coming soon".
 PRO_PRICE = "$3.99"
