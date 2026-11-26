@@ -739,7 +739,7 @@ QUERY_PASSTHROUGH = "generic:variant_query;fragment_query"
 SUPPORTED_SITES_URL = "https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md"
 GITHUB_URL = "https://github.com/souldraft?tab=repositories"  # the GitHub button: all my apps
 
-# ---- Support form + Donate. Fill in SUPPORT_URL when the relay is live. ----
+# ---- Support form + Donate ----
 SUPPORT_EMAIL = "vteam732@gmail.com"
 SUPPORT_URL = "https://script.google.com/macros/s/AKfycbzA3HB7hV-zmxkvKJ0OFz1NisE3Zg7Y-iAioJdbe_nyguZ_z8chWp63EAdrA4JVs0mASg/exec" # Google Apps Script web-app URL (ends in /exec), see support-server/SETUP.md. Empty = email fallback.
 SUPPORT_APP_KEY = "vd-support-v1"  # not a secret, only stops random web bots; must match APP_KEY in support-server/Code.gs
