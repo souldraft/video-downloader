@@ -4,13 +4,14 @@ Open Claude Code **in the folder that holds `VideoDownloader.py`**, then paste e
 
 ---
 
-You are working on **Video Downloader**, my Windows desktop app (v2.0.0). It downloads videos with yt-dlp + FFmpeg and records the screen with sound, mic and camera. It's sold as **freemium**: downloading is free; the screen recorder is **Pro, ₹299 one-time**. It's published on GitHub (`souldraft/video-downloader`, all rights reserved) with the .exe on the Releases page and a product site in `docs/` (GitHub Pages). I'm not a programmer: do the work yourself, run the commands yourself, and explain results in plain English.
+You are working on **Video Downloader**, my Windows desktop app (v2.1.0). It downloads videos with yt-dlp + FFmpeg and records the screen with sound, mic and camera. **Every feature is free.** People can optionally **donate ₹20–₹300 by UPI**; donations unlock nothing. It's published on GitHub (`souldraft/video-downloader`, all rights reserved) with the .exe on the Releases page and a product site in `docs/` (GitHub Pages). I'm not a programmer: do the work yourself, run the commands yourself, and explain results in plain English.
 
 ## Rules (read first)
 - **`VideoDownloader.py` is the starting point. Never rewrite it from scratch.** Read it, change only what's needed, keep its structure: one file, the `Engine` class separate from the GUI (`App`), helpers as plain functions so `--selftest` can test them.
 - Don't add features I didn't ask for. Ask before changing the look of anything.
 - **Never weaken the safety layer** (below). Never add DRM circumvention.
-- **Never put a secret in the app or the repo**: no payment-provider API keys, no tokens, no passwords. Anything in the .exe can be read by anyone. `SUPPORT_APP_KEY` is deliberately not a secret.
+- **Never put a secret in the app or the repo**: no API keys, no tokens, no passwords. Anything in the .exe can be read by anyone. `SUPPORT_APP_KEY` is deliberately not a secret, and a UPI ID is public by design.
+- **Never lock a feature behind a donation.** Donations must stay voluntary; a paid unlock would make it a sale, which brings payment-provider rules (and their ban on video downloaders) back.
 - **Don't run `build.bat` yourself**: it opens the app and waits for a key press at the end. Ask me to run it, or run the PyInstaller command from it directly.
 - After every change: `python VideoDownloader.py --selftest` must print `ALL TESTS PASSED`. Bump `APP_VERSION` and add a dated `CHANGELOG.md` entry (plain English: New / Changed / Fixed / Tested / Not yet tested).
 
@@ -18,24 +19,21 @@ You are working on **Video Downloader**, my Windows desktop app (v2.0.0). It dow
 Windows 10/11 64-bit (HP laptop), Python 3.12, `.venv` created by `build.bat`. yt-dlp and FFmpeg come from winget. The app calls the installed `yt-dlp.exe` / `ffmpeg.exe` / `ffprobe.exe`; never bundle them.
 
 ## Where things live in `VideoDownloader.py`
-- **Top constants:** `APP_VERSION`, `GITHUB_URL`, `SUPPORT_EMAIL = "vteam732@gmail.com"`, `SUPPORT_URL` (Google Apps Script `/exec` URL, empty = email fallback), `SUPPORT_APP_KEY = "vd-support-v1"`, `BUY_URL` (checkout link, empty = "Coming soon"), `PRO_PRICE` (**still `"$3.99"` in v2.0.0; must become `"₹299"`**), `CAM_SIZES`, `CAM_STYLES`, mic thresholds (`MIC_VOICE_DB = -45`, `MIC_LONG_TALK_S = 2.5`, `MIC_SILENCE_PEAK`), `BAR_*` colours, `PAUSE_AMBER`.
+- **Top constants:** `APP_VERSION`, `GITHUB_URL`, `SUPPORT_EMAIL = "vteam732@gmail.com"`, `SUPPORT_URL` (Google Apps Script `/exec` URL, empty = email fallback), `SUPPORT_APP_KEY = "vd-support-v1"`, `DONATE_UPI_ID` (empty = the Donate dialog points to the website), `DONATE_PAYEE`, `DONATE_AMOUNTS = (20, 50, 100, 200, 300)`, `DONATE_DEFAULT`, `DONATE_PAGE`, `CAM_SIZES`, `CAM_STYLES`, mic thresholds (`MIC_VOICE_DB = -45`, `MIC_LONG_TALK_S = 2.5`, `MIC_SILENCE_PEAK`), `BAR_*` colours, `PAUSE_AMBER`.
 - **Data:** `settings.json` and `tools\` sit next to the .exe (`data_dir()`), falling back to `%LOCALAPPDATA%\VideoDownloader` when that folder isn't writable. The per-PC **support ID** (`make_support_id`, like `7F3K-92QD`) is stored there.
+- **Donate:** `is_upi_id`, `donate_amount` (clamps to ₹20–₹300), `upi_link` (`upi://pay?pa=…&pn=…&am=…&cu=INR&tn=…`), `upi_qr_png` (segno). The website's QR images are made from the same functions by `scripts/make_donate_qr.py <upi-id>`.
 - **Support:** `build_support_payload`, `send_support` (returns ok, user message, detail; never raises), `support_mailto`, `normalize_screenshot` (re-encodes as JPEG ≤2560 px, which also proves it's a picture). The relay is `support-server/Code.gs` (setup in `support-server/SETUP.md`): MailApp to my Gmail, CacheService flood guard, app key check.
 - **Recorder:** `ScreenRecorder` (`_launch`, `pause`, `resume`, `_finish_capture`), `AudioCapture`, `MicMeter`, `probe_span` / `span_from_probe`, `build_capture_cmd`, `build_mux_cmd_pieces`.
 - **Camera:** `CameraFeed` (FFmpeg DirectShow → rawvideo pipe), `parse_dshow_cameras`, `list_cameras`, `camera_error_text`, `Segmenter` (ONNX), `clean_mask`.
-- **GUI (`App`):** header, TOOLS dropdown (`_toggle_tools_menu`), support ID label (click = copy), `⭐ Get Pro` (`_show_pro`), `💬 Support` (`_show_support`), recorder bar (`_show_rec_bar`, `_rec_make_bar`, `_rec_*`, `_mic_*`, `_cam_*`), `destroy()` override that closes the camera and mic meter.
+- **GUI (`App`):** header, TOOLS dropdown (`_toggle_tools_menu`), support ID label (click = copy), `❤ Donate` (`_show_donate`), `💬 Support` (`_show_support`), recorder bar (`_show_rec_bar`, `_rec_make_bar`, `_rec_*`, `_mic_*`, `_cam_*`), `destroy()` override that closes the camera and mic meter.
 
 ## Look
-White theme, Segoe UI, green accent `#1A7F37`, red for stop/cancel, light-grey panels `#F6F8FA` with `#D0D7DE` borders, monospace labels and terminal. Window 1040×760 (min 900×640). Header: title + version label, **⏺ Record screen**, **❔ How to use**, **Supported sites**, dark **`</> GitHub`**. Row under it: **TOOLS ▾** (yt-dlp / FFmpeg / Deno status panel), support ID + plan ("Free plan"), and on the right **Update downloader**, **⭐ Get Pro**, **💬 Support**.
+White theme, Segoe UI, green accent `#1A7F37`, red for stop/cancel, light-grey panels `#F6F8FA` with `#D0D7DE` borders, monospace labels and terminal. Window 1040×760 (min 900×640). Header: title + version label, **⏺ Record screen**, **❔ How to use**, **Supported sites**, dark **`</> GitHub`**. Row under it: **TOOLS ▾** (yt-dlp / FFmpeg / Deno status panel), the support ID, and on the right **Update downloader**, **❤ Donate**, **💬 Support**.
 
-## Free and Pro
-- **Get Pro dialog:** Free vs Pro table (only "Screen recorder (sound + mic)" is Pro-only), Buy button (disabled "Coming soon" while `BUY_URL` is empty, with the note that everything is free until Pro is on sale), **ALREADY BOUGHT?** key box + **Activate**, and the support ID.
-- **Licensing is not switched on yet.** Planned design (do it only when I ask, after the payment provider approves me):
-  - Provider: **Dodo Payments** (UPI + cards in INR, licence keys generated and emailed automatically). Backup: Gumroad.
-  - Activate: `POST https://live.dodopayments.com/licenses/activate` with `{"license_key", "name": "<support ID>"}` → keep the returned instance id. Validate at startup (at most once a day, with a few days' offline grace): `POST /licenses/validate` with `{"license_key", "license_key_instance_id"}`. These two endpoints are public; **no API key in the app**. Test against `https://test.dodopayments.com` first.
-  - Limit: 2 PCs per key. A refunded or disabled key stops validating → back to Free.
-  - Store the key and instance id in `settings.json`. Only the recorder checks `is_pro`; downloading must never depend on the network check.
-  - The website's `docs/thanks.html` reads `?license_key=` from the checkout return URL and shows it with a Copy button.
+## Donations
+- **❤ Donate dialog:** amount buttons ₹20 / ₹50 / ₹100 / ₹200 / ₹300 (default ₹50), a UPI QR code for the chosen amount, the UPI ID with a Copy button, a line that donations are voluntary and unlock nothing, and a link to the website's donate box. Without `segno` it shows the UPI ID and amount as text; with an empty `DONATE_UPI_ID` it says donations open soon.
+- Payments go straight to my bank account by UPI: no payment company, no licence keys, no server.
+- If a payment provider is ever added, keep it donation-only and check its policy first (Dodo Payments bans donations without a product, and bans "unauthorized media downloads").
 
 ## Screen recorder (v2 behaviour to keep)
 - **Compact dark bar** at the top centre (`overrideredirect`, always on top, draggable, black like the Snipping Tool), icons only with hover tooltips: **● Start / ■ Stop**, **pause** (icon only, right next to Start), timer, **mic**, **PC sound**, **camera ▾**, **⚙**, **✕**. Icons come from Segoe Fluent Icons / Segoe MDL2 Assets (`\uE720` mic, `\uEC54` mic off, `\uE767` volume, `\uE74F` mute, `\uE722` camera, `\uE70D` chevron, `\uE713` gear, `\uE711` close, `\uE769` pause, `\uE768` play) with emoji fallback. Tooltips must close on their own (pointer check every 200 ms) and never show in recordings.
@@ -68,8 +66,8 @@ White theme, Segoe UI, green accent `#1A7F37`, red for stop/cancel, light-grey p
 Find yt-dlp / FFmpeg / ffprobe / Deno in `tools\`, PATH (re-read from the registry), WinGet Links/Packages, Scoop, Chocolatey, pip Scripts, `~\.deno\bin`, `C:\ffmpeg\bin`. Missing → amber banner + **Install automatically** (winget silent first, then official GitHub downloads into `tools\`, extracting only the needed .exe files). **Update downloader** = winget upgrade or `yt-dlp -U`.
 
 ## Build and release
-- `build.bat` → `.venv` → `pip install customtkinter pillow soundcard pyinstaller` (+ optional `onnxruntime>=1.17`) → `--selftest` → PyInstaller `--onefile --windowed` with `icon.ico`, customtkinter data, the PIL hidden imports, soundcard, and (when onnxruntime is installed) `--collect-binaries onnxruntime --add-data selfie_segmentation.onnx;. --add-data selfie_segmentation.LICENSE.txt;.` → installs to `%LOCALAPPDATA%\Programs\VideoDownloader` + shortcuts. No UAC prompt by default; `build.bat admin` adds `--uac-admin`. The .exe is about 50 MB (onnxruntime is about 30 MB of that).
-- **Release:** bump `APP_VERSION`, update `CHANGELOG.md`, build, commit, tag `vX.Y.Z`, then `gh release create vX.Y.Z dist\VideoDownloader.exe` with the changelog entry, the SHA-256 of the .exe (`Get-FileHash -Algorithm SHA256`) and the SmartScreen note ("More info → Run anyway" until the app is code-signed).
+- `build.bat` → `.venv` → `pip install customtkinter pillow soundcard segno pyinstaller` (+ optional `onnxruntime>=1.17`) → `--selftest` → PyInstaller `--onefile --windowed` with `icon.ico`, customtkinter data, the PIL hidden imports, soundcard, `--hidden-import segno`, and (when onnxruntime is installed) `--collect-binaries onnxruntime --add-data selfie_segmentation.onnx;. --add-data selfie_segmentation.LICENSE.txt;.` → installs to `%LOCALAPPDATA%\Programs\VideoDownloader` + shortcuts. No UAC prompt by default; `build.bat admin` adds `--uac-admin`. The .exe is about 50 MB (onnxruntime is about 30 MB of that).
+- **Release:** bump `APP_VERSION`, update `CHANGELOG.md`, build, commit, tag `vX.Y.Z`, then create the GitHub release with `dist\VideoDownloader.exe` attached and the changelog entry, the SHA-256 of the .exe (`Get-FileHash -Algorithm SHA256`) and the SmartScreen note ("More info → Run anyway" until the app is code-signed).
 - **Never commit:** `.venv/ build/ dist/ *.spec __pycache__/ settings.json tools/ recordings, .write-test-*, *.bak`, or any secret. `.gitignore` already covers these.
 
 ## Testing before you say it's done

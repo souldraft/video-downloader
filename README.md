@@ -20,18 +20,11 @@ It's built on [yt-dlp](https://github.com/yt-dlp/yt-dlp) and [FFmpeg](https://ff
 
 ---
 
-## Free and Pro
+## Free, with optional donations
 
-| | Free | Pro |
-|---|:---:|:---:|
-| Download from 1,700+ sites, best quality as one MP4 | ✓ | ✓ |
-| Audio only (MP3), streaming links, browser login | ✓ | ✓ |
-| Safety checks on every download | ✓ | ✓ |
-| Screen recorder (PC sound, mic, camera bubble / cutout, pause) | | ✓ |
+**Every feature is free**, including the screen recorder, the camera bubble / cutout and pause. There's no paid version, trial or account.
 
-**Pro is ₹299, paid once.** No subscription. After paying you get a **licence key by email straight away**; paste it in **⭐ Get Pro → Already bought?**
-
-> **Pro isn't on sale yet.** Until it is, everything (including the screen recorder) is free. Buying will open on the [website](https://souldraft.github.io/video-downloader/).
+If the app is useful to you, you can **donate ₹20 to ₹300 by UPI** (GPay, PhonePe, Paytm…): click **❤ Donate** in the app, or use the [donate box on the website](https://souldraft.github.io/video-downloader/#donate). Donations are voluntary and don't unlock anything.
 
 ---
 
@@ -149,7 +142,7 @@ The source is here so you can see how the app works. You can build it for your o
 
 1. Download or clone this repo, then double-click **`build.bat`**. It finds or installs Python, builds `VideoDownloader.exe`, installs it to `%LOCALAPPDATA%\Programs\VideoDownloader`, and creates **Desktop** and **Start menu** shortcuts. The first run takes 2–5 minutes.
 2. `build.bat admin` builds a version that always runs as Administrator. `uninstall.bat` removes the app, its settings and its tools folder; your videos are not touched.
-3. To run without building: `pip install customtkinter pillow soundcard onnxruntime`, then `python VideoDownloader.py`.
+3. To run without building: `pip install customtkinter pillow soundcard segno onnxruntime`, then `python VideoDownloader.py`.
 
 Self-test: `python VideoDownloader.py --selftest`
 
@@ -160,11 +153,12 @@ Self-test: `python VideoDownloader.py --selftest`
 | `icon.ico` | App icon |
 | `selfie_segmentation.onnx` | Background-removal model for the camera cutout (Apache 2.0, licence in `selfie_segmentation.LICENSE.txt`) |
 | `support-server/` | The small Google Apps Script that turns the in-app Support form into an email |
+| `scripts/make_donate_qr.py` | Makes the website's donation QR codes for a UPI ID (same code as the app) |
 | `CLAUDE_CODE_PROMPT.md` | Technical specification for working on the app with Claude Code |
 | `CHANGELOG.md` | What changed in each version |
 | `docs/` | The website (GitHub Pages) and screenshots |
 
-**Tech:** Python 3.12 · customtkinter · Pillow · soundcard · NumPy · ONNX Runtime · PyInstaller · yt-dlp · FFmpeg · (optional) Deno. Licences: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+**Tech:** Python 3.12 · customtkinter · Pillow · soundcard · NumPy · segno · ONNX Runtime · PyInstaller · yt-dlp · FFmpeg · (optional) Deno. Licences: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 
 ---
 

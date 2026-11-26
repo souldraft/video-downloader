@@ -1,6 +1,6 @@
 # Third-party notices
 
-Video Downloader is © 2026 Shiva Kaja (see [LICENSE](LICENSE)). It is built on the open-source work below. Each component keeps its own licence. The versions listed are the ones used to build the v2.0.0 release; the licences were read from each installed package's metadata.
+Video Downloader is © 2026 Shiva Kaja (see [LICENSE](LICENSE)). It is built on the open-source work below. Each component keeps its own licence. The versions listed are the ones used to build the v2.x releases; the licences were read from each installed package's metadata.
 
 ## Packed into `VideoDownloader.exe`
 
@@ -13,6 +13,7 @@ Video Downloader is © 2026 Shiva Kaja (see [LICENSE](LICENSE)). It is built on 
 | [packaging](https://github.com/pypa/packaging) | 26.4 | Apache-2.0 OR BSD-2-Clause |
 | [Pillow](https://python-pillow.org/) | 13.0.0 | MIT-CMU |
 | [SoundCard](https://github.com/bastibe/SoundCard) | 0.4.6 | BSD-3-Clause |
+| [segno](https://github.com/heuer/segno) (QR codes for the Donate dialog) | 1.6.6 | BSD-3-Clause |
 | [cffi](https://cffi.readthedocs.io/) | 2.1.1 | MIT-0 |
 | [pycparser](https://github.com/eliben/pycparser) | 3.12 | BSD-3-Clause |
 | [NumPy](https://numpy.org/) | 2.5.5 | BSD-3-Clause (with 0BSD, MIT, Zlib, CC0-1.0 parts) |

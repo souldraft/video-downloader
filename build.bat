@@ -43,9 +43,9 @@ if not exist ".venv\Scripts\python.exe" (
 set "VPY=.venv\Scripts\python.exe"
 
 rem ---------- 3. Packages ----------
-echo [3/6] Installing packages: customtkinter, pillow, soundcard, onnxruntime, pyinstaller...
+echo [3/6] Installing packages: customtkinter, pillow, soundcard, segno, onnxruntime, pyinstaller...
 "%VPY%" -m pip install --upgrade pip --quiet --disable-pip-version-check
-"%VPY%" -m pip install --upgrade "customtkinter>=5.2,<7" "pillow>=10" "soundcard>=0.4.4" "pyinstaller>=6.10" --quiet --disable-pip-version-check || goto :fail
+"%VPY%" -m pip install --upgrade "customtkinter>=5.2,<7" "pillow>=10" "soundcard>=0.4.4" "segno>=1.6" "pyinstaller>=6.10" --quiet --disable-pip-version-check || goto :fail
 rem  onnxruntime runs the camera's Cutout (background removal). Optional: if it fails, the build still works.
 "%VPY%" -m pip install --upgrade "onnxruntime>=1.17" --quiet --disable-pip-version-check || echo     Note: onnxruntime did not install, so the camera Cutout style is left out. Everything else works.
 
@@ -64,7 +64,7 @@ echo [5/6] Building VideoDownloader.exe (about 1 minute)...
 "%VPY%" -m PyInstaller --noconfirm --clean --log-level WARN --onefile --windowed %ADMINFLAG% ^
   --name VideoDownloader --icon icon.ico --add-data "icon.ico;." --collect-data customtkinter ^
   --hidden-import PIL._tkinter_finder --hidden-import PIL._imagingtk --hidden-import PIL.ImageTk ^
-  --hidden-import soundcard --collect-data soundcard ^
+  --hidden-import soundcard --collect-data soundcard --hidden-import segno ^
   %CUTOUT% %GITHUBICON% VideoDownloader.py || goto :fail
 if not exist "dist\VideoDownloader.exe" goto :fail
 

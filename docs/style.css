@@ -156,3 +156,16 @@ details p { margin: 10px 0 0; color: var(--muted); }
 .nav a.gh:hover { background: var(--surface); }
 .nav a.gh img { display: block; }
 .eyebrow { display: inline-block; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--green); margin: 0 0 14px; }
+
+/* donate box */
+.amounts { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.amounts button { font: inherit; font-weight: 700; padding: 9px 0; border-radius: 8px; border: 1px solid var(--border); background: #FFFFFF; color: var(--text); cursor: pointer; }
+.amounts button:hover { background: var(--surface); }
+.amounts button[aria-pressed="true"] { background: var(--green); border-color: var(--green); color: #FFFFFF; }
+.qr { display: flex; justify-content: center; margin: 16px 0 8px; }
+.qr img { width: 220px; height: 220px; border: 1px solid var(--border); border-radius: 8px; image-rendering: pixelated; }
+.upi-id { text-align: center; margin: 4px 0 12px; font-size: 0.95rem; }
+.link-btn { font: inherit; font-size: 0.9rem; background: none; border: none; color: var(--green); cursor: pointer; text-decoration: underline; padding: 0 4px; }
+.small-note { color: var(--faint); font-size: 0.85rem; margin: 10px 0 0; }
+.mobile-only { display: none; }
+@media (max-width: 760px), (pointer: coarse) { .mobile-only { display: block; } }

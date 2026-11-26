@@ -45,7 +45,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 APP_NAME = "Video Downloader"
-APP_VERSION = "2.0.0"
+APP_VERSION = "2.1.0"
 APP_ID = "Shiva.VideoDownloader"
 IS_WIN = sys.platform == "win32"
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0) if IS_WIN else 0
@@ -739,13 +739,17 @@ QUERY_PASSTHROUGH = "generic:variant_query;fragment_query"
 SUPPORTED_SITES_URL = "https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md"
 GITHUB_URL = "https://github.com/souldraft?tab=repositories"  # the GitHub button: all my apps
 
-# ---- Support form + Get Pro. Fill in SUPPORT_URL and BUY_URL when those services are live. ----
+# ---- Support form + Donate. Fill in SUPPORT_URL when the relay is live. ----
 SUPPORT_EMAIL = "vteam732@gmail.com"
 SUPPORT_URL = "https://script.google.com/macros/s/AKfycbzA3HB7hV-zmxkvKJ0OFz1NisE3Zg7Y-iAioJdbe_nyguZ_z8chWp63EAdrA4JVs0mASg/exec" # Google Apps Script web-app URL (ends in /exec), see support-server/SETUP.md. Empty = email fallback.
 SUPPORT_APP_KEY = "vd-support-v1"  # not a secret, only stops random web bots; must match APP_KEY in support-server/Code.gs
-BUY_URL = ""  # payment page (Dodo Payments / Gumroad checkout link). Empty = "Coming soon".
-PRO_PRICE = "$3.99"
-SUPPORT_SUBJECTS = ("Download problem", "Screen recording problem", "Payment or licence", "Feature request",
+# Donations: everything in the app is free; donating is optional. Paid by UPI (GPay, PhonePe, Paytm, BHIM...).
+DONATE_UPI_ID = ""  # e.g. "name@okaxis". Empty = the Donate dialog sends people to the website instead.
+DONATE_PAYEE = "Video Downloader"  # shown in the UPI app next to the bank account's own name
+DONATE_AMOUNTS = (20, 50, 100, 200, 300)  # rupees; fixed buttons keep every donation between ₹20 and ₹300
+DONATE_DEFAULT = 50
+DONATE_PAGE = "https://souldraft.github.io/video-downloader/#donate"
+SUPPORT_SUBJECTS = ("Download problem", "Screen recording problem", "Donation question", "Feature request",
                     "Something else")
 SUPPORT_IMAGE_MAX_SIDE = 2560
 SUPPORT_COOLDOWN_S = 60
@@ -813,6 +817,42 @@ def send_support(payload: dict, url=None, timeout: int = 45):
 def support_mailto(subject: str, body: str) -> str:
     query = urllib.parse.urlencode({"subject": subject, "body": body[:1500]}, quote_via=urllib.parse.quote)
     return f"mailto:{SUPPORT_EMAIL}?{query}"
+
+
+_UPI_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{1,255}@[A-Za-z][A-Za-z0-9.-]{1,63}$")
+
+
+def is_upi_id(value) -> bool:
+    """name@bank style UPI ID (virtual payment address)."""
+    return isinstance(value, str) and bool(_UPI_ID_RE.match(value.strip()))
+
+
+def donate_amount(amount) -> int:
+    """Whole rupees, kept between the smallest and largest donation button (₹20 to ₹300)."""
+    try:
+        value = int(round(float(amount)))
+    except (TypeError, ValueError):
+        value = DONATE_DEFAULT
+    return max(min(DONATE_AMOUNTS), min(max(DONATE_AMOUNTS), value))
+
+
+def upi_link(upi_id: str, amount, payee: str = DONATE_PAYEE, note: str = f"{APP_NAME} donation") -> str:
+    """upi://pay link with the amount filled in; every UPI app (GPay, PhonePe, Paytm, BHIM) understands it."""
+    if not is_upi_id(upi_id):
+        raise ValueError("not a UPI ID")
+    q = urllib.parse.quote
+    return (f"upi://pay?pa={q(upi_id.strip(), safe='@.-_')}&pn={q(payee)}&am={donate_amount(amount)}.00"
+            f"&cu=INR&tn={q(note)}")
+
+
+def upi_qr_png(link: str, scale: int = 8) -> bytes:
+    """QR code of a UPI link as PNG bytes. Needs the small 'segno' package (raises ImportError without it)."""
+    import io as _io
+    import segno
+    buf = _io.BytesIO()
+    segno.make(link, error="m").save(buf, kind="png", scale=scale, border=3, dark="#000000", light="#FFFFFF")
+    return buf.getvalue()
+
 
 PROGRESS_TEMPLATE = ("download:@@P|%(progress.status)s|%(progress.downloaded_bytes)s|%(progress.total_bytes)s|"
                      "%(progress.total_bytes_estimate)s|%(progress.speed)s|%(progress.eta)s|"
@@ -2374,6 +2414,27 @@ def selftest() -> int:
         check("no server -> clear 'couldn't reach' message", not ok2 and "Couldn't reach" in msg2)
     except Exception as e:
         check(f"local relay test ran ({type(e).__name__}: {e})", False)
+    print("\nDonate (UPI):")
+    check("UPI ID check accepts name@okaxis", is_upi_id("shiva.k@okaxis") and is_upi_id("vd-app@ybl"))
+    check("UPI ID check rejects junk", not any(is_upi_id(v) for v in ("", "name", "@okaxis", "a b@ybl", None,
+                                                                         "name@", "x@1bank")))
+    check("amounts stay between ₹20 and ₹300", donate_amount(5) == 20 and donate_amount(1000) == 300
+          and donate_amount("100") == 100 and donate_amount("abc") == DONATE_DEFAULT)
+    link = upi_link("shiva.k@okaxis", 100)
+    check("UPI link has the ID, ₹100 and INR",
+          link.startswith("upi://pay?pa=shiva.k@okaxis&") and "&am=100.00&" in link and "&cu=INR" in link)
+    check("UPI link note and name are URL-safe", " " not in link and "pn=Video%20Downloader" in link)
+    try:
+        upi_link("not an id", 50)
+        check("a bad UPI ID is refused", False)
+    except ValueError:
+        check("a bad UPI ID is refused", True)
+    try:
+        png = upi_qr_png(link)
+        check("QR code is a PNG picture", png[:8] == b"\x89PNG\r\n\x1a\n" and len(png) > 300)
+    except ImportError:
+        print("  info  segno not installed here; QR picture test skipped (the Donate dialog shows the UPI ID)")
+    check("DONATE_UPI_ID is empty or a real UPI ID", not DONATE_UPI_ID or is_upi_id(DONATE_UPI_ID))
     print("\n" + ("ALL TESTS PASSED" if not failures else f"{len(failures)} TEST(S) FAILED: {', '.join(failures)}"))
     return 0 if not failures else 1
 
@@ -2721,18 +2782,18 @@ if ctk is not None:
                                            fg_color=SURFACE, hover_color=SURFACE_2, text_color=FAINT,
                                            border_width=1, border_color=BORDER)
             self.btn_tools.pack(side="left")
-            # this PC's support ID + plan; click to copy (users quote it to Support / for licence questions)
+            # this PC's support ID; click to copy (users quote it when they contact Support)
             self.lbl_sid = ctk.CTkLabel(bar, text=self._sid_text(), font=self.f_chip, text_color=MUTED)
             self.lbl_sid.pack(side="left", padx=(14, 0))
             self.lbl_sid.bind("<Button-1>", lambda e: self._copy_support_id())
             self.btn_support = self._button(bar, "💬 Support", self._show_support, width=112, height=28,
                                             font=self.f_small)
             self.btn_support.pack(side="right")
-            self.btn_pro = ctk.CTkButton(bar, text="⭐ Get Pro", command=self._show_pro, width=112, height=28,
+            self.btn_donate = ctk.CTkButton(bar, text="❤ Donate", command=self._show_donate, width=112, height=28,
                                          font=self.f_small_b, corner_radius=6, fg_color=AMBER_BG,
                                          hover_color="#FBE7A1", text_color=AMBER_TEXT, border_width=1,
                                          border_color=AMBER_BORDER)
-            self.btn_pro.pack(side="right", padx=(0, 8))
+            self.btn_donate.pack(side="right", padx=(0, 8))
             self.btn_update = self._button(bar, "Update downloader", self._update_ytdlp, width=150, height=28,
                                            font=self.f_small)
             self.btn_update.pack(side="right", padx=(0, 8))
@@ -2942,7 +3003,7 @@ if ctk is not None:
                     return  # click on the panel or the button itself
             self._hide_tools_menu()
 
-        # ------------------------------------------------------------- support ID, Get Pro, Support
+        # ------------------------------------------------------------- support ID, Donate, Support
         def _load_support_id(self) -> str:
             sid = self.settings.get("support_id")
             if not is_support_id(sid):
@@ -2950,11 +3011,8 @@ if ctk is not None:
                 self.settings.set("support_id", sid)
             return sid
 
-        def _plan_name(self) -> str:
-            return "Free plan"  # becomes "Pro" when licence activation is switched on
-
         def _sid_text(self) -> str:
-            return f"ID {self.support_id} · {self._plan_name()}"
+            return f"Support ID {self.support_id}"
 
         def _copy_support_id(self):
             self.clipboard_clear()
@@ -2963,7 +3021,7 @@ if ctk is not None:
             self.after(1500, lambda: self.lbl_sid.configure(text=self._sid_text(), text_color=MUTED))
 
         def _focus_existing(self, attr) -> bool:
-            """A second click on Get Pro / Support brings the open dialog to the front."""
+            """A second click on Donate / Support brings the open dialog to the front."""
             win = getattr(self, attr, None)
             try:
                 if win is not None and win.winfo_exists():
@@ -2996,7 +3054,7 @@ if ctk is not None:
             tools = ", ".join(f"{TOOLS[k]['label']} {self.tool_versions.get(k) or 'missing'}"
                               for k in ("yt-dlp", "ffmpeg", "deno"))
             lines = [f"App: {APP_NAME} {APP_VERSION} ({how})", f"Support ID: {self.support_id}",
-                     f"Plan: {self._plan_name()}", f"Windows: {platform.platform()}", f"Tools: {tools}"]
+                     f"Windows: {platform.platform()}", f"Tools: {tools}"]
             if include_log:
                 try:
                     log = self.term.get("1.0", "end").strip()
@@ -3005,62 +3063,73 @@ if ctk is not None:
                 lines += ["", "--- Terminal (last part) ---", log[-6000:]]
             return "\n".join(lines)
 
-        def _show_pro(self):
-            if self._focus_existing("_pro_win"):
+        def _show_donate(self):
+            if self._focus_existing("_donate_win"):
                 return
-            win = self._pro_win = self._dialog("Get Pro", "540x600")
+            win = self._donate_win = self._dialog("Donate", "520x660")
             pad = {"padx": 26}
-            ctk.CTkLabel(win, text="⭐  Video Downloader Pro", font=self.f_h2, text_color=AMBER_TEXT
+            ctk.CTkLabel(win, text="❤  Support Video Downloader", font=self.f_h2, text_color=TEXT
                          ).pack(anchor="w", pady=(20, 0), **pad)
-            ctk.CTkLabel(win, text=f"One-time payment of {PRO_PRICE}. No subscription.", font=self.f_small,
-                         text_color=MUTED).pack(anchor="w", pady=(2, 12), **pad)
-            table = ctk.CTkFrame(win, fg_color=SURFACE, border_color=BORDER, border_width=1, corner_radius=8)
-            table.pack(fill="x", **pad)
-            table.grid_columnconfigure(0, weight=1)
-            for col, head in ((1, "Free"), (2, "Pro")):
-                ctk.CTkLabel(table, text=head, font=self.f_label, text_color=MUTED, width=60
-                             ).grid(row=0, column=col, pady=(10, 4), padx=(0, 14))
-            rows = (("Download from 1,700+ sites", True), ("Best quality, one MP4", True),
-                    ("Audio only (MP3)", True), ("Safety checks", True),
-                    ("Screen recorder (sound + mic)", False))
-            for r, (feature, free) in enumerate(rows, start=1):
-                last = r == len(rows)
-                ctk.CTkLabel(table, text=feature, font=self.f_ui, text_color=TEXT, anchor="w"
-                             ).grid(row=r, column=0, sticky="w", padx=14, pady=(2, 12 if last else 2))
-                ctk.CTkLabel(table, text="✓" if free else "—", font=self.f_ui_b, text_color=GREEN if free else FAINT,
-                             width=60).grid(row=r, column=1, padx=(0, 14), pady=(2, 12 if last else 2))
-                ctk.CTkLabel(table, text="✓", font=self.f_ui_b, text_color=GREEN, width=60
-                             ).grid(row=r, column=2, padx=(0, 14), pady=(2, 12 if last else 2))
-            on_sale = BUY_URL.startswith("https://")
-            if not on_sale:
-                ctk.CTkLabel(win, text="Pro isn't on sale yet. Until it is, everything (including the screen "
-                                       "recorder) is free.", font=self.f_small, text_color=MUTED, wraplength=480,
-                             justify="left").pack(anchor="w", pady=(12, 0), **pad)
-            ctk.CTkButton(win, text=f"Buy Pro · {PRO_PRICE}" if on_sale else "Coming soon",
-                          command=lambda: webbrowser.open(BUY_URL), height=46, font=self.f_btn, corner_radius=6,
-                          fg_color=GREEN if on_sale else SURFACE_2, hover_color=GREEN_HOVER, text_color="#FFFFFF",
-                          text_color_disabled=FAINT, state="normal" if on_sale else "disabled"
-                          ).pack(fill="x", pady=(14, 4), **pad)
-            self._label(win, "ALREADY BOUGHT?", "enter the licence key from your email").pack(
-                anchor="w", pady=(16, 4), **pad)
-            row = ctk.CTkFrame(win, fg_color="transparent")
-            row.pack(fill="x", **pad)
-            row.grid_columnconfigure(0, weight=1)
-            key_var = tk.StringVar()
-            self._entry(row, key_var).grid(row=0, column=0, sticky="ew")
-            status = ctk.CTkLabel(win, text="", font=self.f_small, text_color=MUTED, wraplength=480, justify="left")
+            ctk.CTkLabel(win, text="Everything in the app is free, including the screen recorder. If it's useful to "
+                                   "you, a small donation helps me keep it updated. It's completely optional.",
+                         font=self.f_small, text_color=MUTED, wraplength=468, justify="left"
+                         ).pack(anchor="w", pady=(4, 14), **pad)
+            upi = DONATE_UPI_ID.strip()
+            if not is_upi_id(upi):
+                ctk.CTkLabel(win, text="Donations open soon. Thank you for wanting to help!", font=self.f_ui,
+                             text_color=TEXT, wraplength=468, justify="left").pack(anchor="w", pady=(8, 12), **pad)
+                self._button(win, "Open the website", lambda: webbrowser.open(DONATE_PAGE), width=180
+                             ).pack(anchor="w", **pad)
+                return
+            self._label(win, "CHOOSE AN AMOUNT", "₹20 to ₹300").pack(anchor="w", pady=(0, 6), **pad)
+            labels = [f"₹{a}" for a in DONATE_AMOUNTS]
+            choice = tk.StringVar(value=f"₹{DONATE_DEFAULT}")
+            seg = ctk.CTkSegmentedButton(win, values=labels, variable=choice, height=38, font=self.f_ui_b,
+                                         selected_color="#BFE8C9", selected_hover_color="#A9DDB6",
+                                         unselected_color=SURFACE, unselected_hover_color=SURFACE_2,
+                                         fg_color=SURFACE, text_color=TEXT, corner_radius=6)
+            seg.pack(fill="x", **pad)
+            qr_box = ctk.CTkFrame(win, fg_color="#FFFFFF", border_color=BORDER, border_width=1, corner_radius=8)
+            qr_box.pack(pady=(16, 6))
+            qr_lbl = ctk.CTkLabel(qr_box, text="", width=240, height=240, font=self.f_ui, text_color=TEXT,
+                                  wraplength=220)
+            qr_lbl.pack(padx=12, pady=12)
+            how = ctk.CTkLabel(win, text="", font=self.f_small, text_color=MUTED, wraplength=468, justify="center")
+            how.pack(**pad)
 
-            def activate():
-                if not key_var.get().strip():
-                    status.configure(text="Paste the licence key from your purchase email.", text_color=RED)
-                else:
-                    status.configure(text="Licence activation is switched on when Pro goes on sale. Keep this key; "
-                                          "it will work then.", text_color=MUTED)
-            self._button(row, "Activate", activate, width=110).grid(row=0, column=1, padx=(8, 0))
-            status.pack(anchor="w", pady=(6, 0), **pad)
-            ctk.CTkLabel(win, text=f"Your support ID: {self.support_id}. Mention it if you contact Support about "
-                                   "a purchase.", font=self.f_small, text_color=FAINT, wraplength=480,
-                         justify="left").pack(anchor="w", pady=(10, 18), **pad)
+            def show(_value=None):
+                amount = donate_amount(choice.get().lstrip("₹"))
+                link = upi_link(upi, amount)
+                try:
+                    import io as _io
+                    pic = Image.open(_io.BytesIO(upi_qr_png(link)))
+                    self._qr_img = ctk.CTkImage(light_image=pic, dark_image=pic, size=(240, 240))
+                    qr_lbl.configure(image=self._qr_img, text="")
+                    how.configure(text=f"Scan with GPay, PhonePe, Paytm or any UPI app to give ₹{amount}.")
+                except Exception:  # segno or Pillow missing: the UPI ID still works by hand
+                    qr_lbl.configure(image=None, text=f"Pay ₹{amount}\nto {upi}\nin any UPI app")
+                    how.configure(text="Open your UPI app, choose Pay to UPI ID, and enter the ID below.")
+            seg.configure(command=show)
+            show()
+            row = ctk.CTkFrame(win, fg_color="transparent")
+            row.pack(pady=(12, 0), **pad)
+            ctk.CTkLabel(row, text=f"UPI ID: {upi}", font=self.f_mono, text_color=TEXT).pack(side="left")
+            copied = ctk.CTkLabel(row, text="", font=self.f_small, text_color=GREEN)
+
+            def copy_id():
+                self.clipboard_clear()
+                self.clipboard_append(upi)
+                copied.configure(text="  copied ✓")
+                win.after(1500, lambda: copied.configure(text="") if copied.winfo_exists() else None)
+            self._button(row, "Copy", copy_id, width=70, height=30, font=self.f_small).pack(side="left", padx=(10, 0))
+            copied.pack(side="left")
+            ctk.CTkLabel(win, text="Donations are voluntary and don't unlock anything; the app stays the same. "
+                                   "Thank you! 🙏", font=self.f_small, text_color=FAINT, wraplength=468,
+                         justify="left").pack(anchor="w", pady=(14, 0), **pad)
+            link_lbl = ctk.CTkLabel(win, text="Open the donate page on the website ↗", font=self.f_small,
+                                    text_color=GREEN, cursor="hand2")
+            link_lbl.pack(anchor="w", pady=(4, 18), **pad)
+            link_lbl.bind("<Button-1>", lambda e: webbrowser.open(DONATE_PAGE))
 
         def _show_support(self):
             if self._focus_existing("_support_win"):

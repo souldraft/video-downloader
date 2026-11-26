@@ -1,5 +1,18 @@
 # Changelog: what we've done
 
+## v2.1.0 (2026-11-26)
+
+**Changed: everything is free, with optional donations**
+- The screen recorder, camera bubble / cutout and pause are now free for everyone. There is no Pro version and no licence key.
+- **⭐ Get Pro** is now **❤ Donate**. It opens a small window with amount buttons (₹20, ₹50, ₹100, ₹200, ₹300), a UPI QR code for the chosen amount (scan with GPay, PhonePe, Paytm or any UPI app), the UPI ID with a Copy button, and a link to the website. Donations go straight to the bank account and don't unlock anything.
+- The support ID at the top no longer shows a plan ("Free plan" is gone). The Support form's "Payment or licence" subject is now "Donation question".
+- The website's pricing section is now a donate box with the same QR codes, and the terms, refund and privacy pages describe donations instead of sales. The licence thank-you page was removed.
+- New small dependency: `segno` (BSD-3-Clause) draws the QR codes. `build.bat` installs it.
+
+**Tested:** 8 new self-tests (UPI ID check, ₹20–₹300 limits, UPI link format, a bad ID refused, QR picture made), all passing. 9/9 checks on the real window: Donate button, no plan text, "donations open soon" without a UPI ID, UPI ID shown, ₹50 default, five amount buttons, switching to ₹200 updates the QR, Copy puts the UPI ID on the clipboard, a second click reuses the window. The QR in a screenshot of the window was decoded and matched the UPI link exactly. Not yet tested: the Windows .exe and paying with a real UPI app.
+
+---
+
 ## v2.0.0 (2026-11-26)
 
 Version 2 = everything since v1.2.2: Support form + support ID, Get Pro dialog, the compact recorder bar, camera bubble + Cutout, and the live mic icon (details in the v1.3.0 to v1.5.0 entries below, and here).
