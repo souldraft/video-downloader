@@ -2797,7 +2797,7 @@ if ctk is not None:
             self.btn_support = self._button(bar, "💬 Support", self._show_support, width=112, height=28,
                                             font=self.f_small)
             self.btn_support.pack(side="right")
-            self.btn_donate = ctk.CTkButton(bar, text="❤ Donate", command=self._show_donate, width=112, height=28,
+            self.btn_donate = ctk.CTkButton(bar, text="☕ Tip the developer", command=self._show_donate, width=164, height=28,
                                          font=self.f_small_b, corner_radius=6, fg_color=AMBER_BG,
                                          hover_color="#FBE7A1", text_color=AMBER_TEXT, border_width=1,
                                          border_color=AMBER_BORDER)
@@ -3029,7 +3029,7 @@ if ctk is not None:
             self.after(1500, lambda: self.lbl_sid.configure(text=self._sid_text(), text_color=MUTED))
 
         def _focus_existing(self, attr) -> bool:
-            """A second click on Donate / Support brings the open dialog to the front."""
+            """A second click on Tip the developer / Support brings the open dialog to the front."""
             win = getattr(self, attr, None)
             try:
                 if win is not None and win.winfo_exists():
@@ -3074,9 +3074,9 @@ if ctk is not None:
         def _show_donate(self):
             if self._focus_existing("_donate_win"):
                 return
-            win = self._donate_win = self._dialog("Donate", "520x760")
+            win = self._donate_win = self._dialog("Tip the developer", "520x760")
             pad = {"padx": 26}
-            ctk.CTkLabel(win, text="❤  Buy me a chai", font=self.f_h2, text_color=TEXT
+            ctk.CTkLabel(win, text="☕  Buy me a chai", font=self.f_h2, text_color=TEXT
                          ).pack(anchor="w", pady=(20, 0), **pad)
             ctk.CTkLabel(win, text="A small tip to the developer. Everything in the app is free, including the "
                                    "screen recorder, and it stays exactly the same whether you donate or not.",
