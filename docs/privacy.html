@@ -36,9 +36,9 @@
   <h2>What the app connects to</h2>
   <ul>
     <li><strong>The websites you download from.</strong> yt-dlp contacts the site of the link you paste, like a browser would. If you turn on <strong>Browser login</strong>, yt-dlp reads that browser's cookies on your PC so the site sees you as logged in. The cookies are only sent to that site.</li>
-    <li><strong>Tool installs and updates:</strong> winget (Microsoft) or the official GitHub releases of yt-dlp, FFmpeg and Deno, when you install or update them.</li>
+    <li><strong>Tool installs and updates:</strong> winget (Microsoft) or the official GitHub releases of yt-dlp, FFmpeg and Deno, when they're installed (the app sets them up on first start) or updated. Once per start the app also asks GitHub for the newest yt-dlp version number, to show the red dot on <strong>Update downloader</strong>. That's a single request with no account or personal details (GitHub sees your IP address, like any website you visit).</li>
     <li><strong>Microsoft Defender</strong> on your PC scans each finished file. That runs locally.</li>
-    <li><strong>Update check:</strong> once a day the app asks GitHub for the number of the newest release, so it can show "⬆ New version" when there is one. Nothing about you is sent; GitHub sees your IP address, as with any website. Turn it off under <strong>TOOLS ▾</strong>.</li>
+    <li><strong>Update check:</strong> once a day the app asks GitHub for the number of the newest Video Downloader release, so it can show "⬆ New version" when there is one. Nothing about you is sent; GitHub sees your IP address, as with any website. Turn it off under <strong>TOOLS ▾</strong>.</li>
   </ul>
 
   <h2>When you contact support</h2>

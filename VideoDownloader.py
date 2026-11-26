@@ -565,6 +565,56 @@ def winget_command(key: str) -> str:
     return f"winget install --id {TOOLS[key]['winget']} -e"
 
 
+# Installed together on a new PC. Only yt-dlp and FFmpeg are "required" (nothing downloads without them).
+# Deno isn't needed for other sites, but YouTube needs it for full quality, so it comes with the first install.
+AUTO_INSTALL = ("yt-dlp", "ffmpeg", "deno")
+
+
+def join_names(labels) -> str:
+    """['yt-dlp', 'FFmpeg', 'Deno'] -> 'yt-dlp, FFmpeg and Deno'."""
+    labels = [str(x) for x in labels]
+    if len(labels) <= 1:
+        return "".join(labels)
+    return ", ".join(labels[:-1]) + " and " + labels[-1]
+
+
+# ---- "Update downloader" red dot: is a newer yt-dlp out? ----
+YTDLP_LATEST_URL = "https://github.com/yt-dlp/yt-dlp/releases/latest"
+
+
+def version_tuple(v) -> tuple:
+    """'2026.11.23' -> (2026, 11, 23). Anything else (empty, words) -> () = unknown."""
+    parts = str(v or "").strip().lstrip("v").split(".")
+    if not all(p.isdigit() for p in parts):
+        return ()
+    return tuple(int(p) for p in parts)
+
+
+def is_newer_version(latest, current) -> bool:
+    """True only when both versions are readable and `latest` is really newer.
+    A nightly build (2026.11.24.233512) is newer than the release before it, so it never gets the dot."""
+    a, b = version_tuple(latest), version_tuple(current)
+    return bool(a) and bool(b) and a > b
+
+
+def tag_from_release_url(url) -> str:
+    """'https://github.com/yt-dlp/yt-dlp/releases/tag/2026.11.23' -> '2026.11.23'; '' if it isn't a release page."""
+    m = re.search(r"/releases/tag/([^/?#]+)", str(url or ""))
+    return urllib.parse.unquote(m.group(1)) if m else ""
+
+
+def latest_ytdlp_version(timeout: int = 15) -> str:
+    """Newest yt-dlp release number. GitHub's /releases/latest page redirects to /releases/tag/<version>, so one
+    small request is enough (a normal web page, not the GitHub API: no key, no API limit). '' on any error."""
+    try:
+        req = urllib.request.Request(YTDLP_LATEST_URL, method="HEAD",
+                                     headers={"User-Agent": f"{APP_NAME}/{APP_VERSION}"})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return tag_from_release_url(r.geturl())
+    except Exception:
+        return ""
+
+
 def refresh_path():
     """Pick up PATH changes made by winget without restarting the app."""
     if not IS_WIN:
@@ -2260,6 +2310,23 @@ def selftest() -> int:
     probe_cmd = build_capture_cmd("ffmpeg", "gdigrab", "libx264", 30, False, True, ["-t", "1", "-f", "null", "-"])
     check("one-time check runs the same command as a real recording",
           probe_cmd[:probe_cmd.index("-copyts") + 1] == rec_cmd[:rec_cmd.index("-copyts") + 1])
+    print("\nTool setup and update dot:")
+    check("Deno is installed together with yt-dlp and FFmpeg",
+          AUTO_INSTALL == ("yt-dlp", "ffmpeg", "deno") and all(k in TOOLS for k in AUTO_INSTALL))
+    check("only yt-dlp and FFmpeg block downloading", [k for k in TOOLS if TOOLS[k]["required"]] == ["yt-dlp", "ffmpeg"])
+    check("names read 'yt-dlp, FFmpeg and Deno'", join_names(["yt-dlp", "FFmpeg", "Deno"]) == "yt-dlp, FFmpeg and Deno"
+          and join_names(["yt-dlp", "FFmpeg"]) == "yt-dlp and FFmpeg" and join_names(["Deno"]) == "Deno")
+    check("newer yt-dlp -> red dot", is_newer_version("2026.12.01", "2026.11.23"))
+    check("same version -> no dot", not is_newer_version("2026.11.23", "2026.11.23"))
+    check("hotfix release (2026.11.23.1) counts as newer", is_newer_version("2026.11.23.1", "2026.11.23"))
+    check("nightly build -> no dot", not is_newer_version("2026.11.23", "2026.11.24.233512"))
+    check("unreadable version -> no dot", not is_newer_version("", "2026.11.23")
+          and not is_newer_version("2026.12.01", "") and not is_newer_version("2026.12.01", "abc"))
+    check("reads the version from GitHub's release address",
+          tag_from_release_url("https://github.com/yt-dlp/yt-dlp/releases/tag/2026.11.23") == "2026.11.23"
+          and tag_from_release_url("https://github.com/yt-dlp/yt-dlp/releases") == "")
+    latest = latest_ytdlp_version(timeout=8)
+    print(f"  info  Newest yt-dlp on GitHub: {latest or 'not reachable right now (the dot just stays off)'}")
     print("\nTools:")
     tools = detect_tools()
     for key in ("yt-dlp", "ffmpeg", "deno"):
@@ -2651,8 +2718,8 @@ GUIDE = [
         ("h", "Good to know"),
         ("p", "The app can only download the quality the site actually has. If the source is low quality, no app "
               "can make it sharper."),
-        ("p", "YouTube needs a free helper called Deno for full quality. When you paste a YouTube link without it, "
-              "the preview shows an 'Install Deno' button."),
+        ("p", "YouTube needs a free helper called Deno for full quality. The app installs it for you along with "
+              "yt-dlp and FFmpeg. If that ever fails, the preview shows an 'Install Deno' button."),
     ]),
     ("Screen recorder", [
         ("h", "Record your screen with sound"),
@@ -2700,7 +2767,7 @@ GUIDE = [
               "personal offline viewing where the site permits it."),
         ("h", "If something goes wrong"),
         ("p", "•  Read the red box. It says what happened in plain English; 'Show details' has the full log."),
-        ("p", "•  A site stopped working? Click 'Update downloader'."),
+        ("p", "•  A site stopped working? Click 'Update downloader'. A red dot on it means a newer version is out."),
         ("p", "•  Reopen this guide any time with the '❔ How to use' button at the top."),
     ]),
 ]
@@ -2873,9 +2940,9 @@ if ctk is not None:
             self.btn_newver = ctk.CTkButton(bar, text="", width=10, height=28, font=self.f_small_b, corner_radius=14,
                                             fg_color="#DAFBE1", hover_color="#BFE8C9", text_color=GREEN,
                                             border_width=1, border_color="#A7E3B7",
-                                            command=lambda: webbrowser.open(safe_release_page(self._update_page)))
-            self._update_page = UPDATE_PAGE
-            self._update_logged = False
+                                            command=lambda: webbrowser.open(safe_release_page(self._app_update_page)))
+            self._app_update_page = UPDATE_PAGE
+            self._app_update_logged = False
             self.btn_support = self._button(bar, "💬 Support", self._show_support, width=112, height=28,
                                             font=self.f_small)
             self.btn_support.pack(side="right")
@@ -2887,6 +2954,10 @@ if ctk is not None:
             self.btn_update = self._button(bar, "Update downloader", self._update_ytdlp, width=150, height=28,
                                            font=self.f_small)
             self.btn_update.pack(side="right", padx=(0, 8))
+            # red dot inside the button while a newer yt-dlp is out (checked once per start: _check_for_update)
+            self._update_dot_img = self._dot_image(RED)
+            self._update_checked = False
+            self.update_latest = ""
             ctk.CTkFrame(self, height=1, fg_color=BORDER).grid(row=2, column=0, sticky="ew", padx=pad)
 
             # Row 3: missing-tools banner (hidden until needed)
@@ -3068,7 +3139,7 @@ if ctk is not None:
                          anchor="w").pack(fill="x", padx=14, pady=(0, 10))
             self.update_var = tk.BooleanVar(value=bool(self.settings.get("update_check", True)))
             ctk.CTkCheckBox(self.tools_menu, text="Check for new versions (once a day)", variable=self.update_var,
-                            command=self._update_setting_changed, font=self.f_chip, text_color=MUTED,
+                            command=self._app_update_setting_changed, font=self.f_chip, text_color=MUTED,
                             fg_color=GREEN, hover_color=GREEN_HOVER, border_color=BORDER, checkbox_width=18,
                             checkbox_height=18).pack(anchor="w", padx=14, pady=(0, 10))
             self.tools_menu_open = False
@@ -3497,32 +3568,32 @@ if ctk is not None:
             self.term.configure(state="disabled")
 
         # ------------------------------------------------------------- update check
-        def _update_setting_changed(self):
+        def _app_update_setting_changed(self):
             on = bool(self.update_var.get())
             self.settings.set("update_check", on)
             if on:
-                self._maybe_check_updates(force=True)
+                self._app_update_maybe_check(force=True)
             else:
                 self.btn_newver.pack_forget()
 
-        def _maybe_check_updates(self, force=False):
+        def _app_update_maybe_check(self, force=False):
             """At start-up: show what the last check found, and ask GitHub again if that was a day ago."""
             if not self.settings.get("update_check", True):
                 return
             cached = self.settings.get("update_latest")
             if isinstance(cached, str) and is_newer(cached):
-                self._update_found(cached, self.settings.get("update_page"))
+                self._app_update_found(cached, self.settings.get("update_page"))
             try:
                 last = float(self.settings.get("update_last") or 0)
             except (TypeError, ValueError):
                 last = 0.0
             if force or not 0 <= time.time() - last < UPDATE_EVERY_S:
-                threading.Thread(target=self._update_worker, daemon=True).start()
+                threading.Thread(target=self._app_update_worker, daemon=True).start()
 
-        def _update_worker(self):
-            self.ui(self._update_checked, fetch_latest_release())
+        def _app_update_worker(self):
+            self.ui(self._app_update_checked, fetch_latest_release())
 
-        def _update_checked(self, found):
+        def _app_update_checked(self, found):
             self.settings.set("update_last", time.time())
             if not found:
                 return  # offline, or GitHub didn't answer: try again next time
@@ -3530,17 +3601,17 @@ if ctk is not None:
             self.settings.set("update_latest", ver)
             self.settings.set("update_page", page)
             if is_newer(ver) and self.settings.get("update_check", True):
-                self._update_found(ver, page)
+                self._app_update_found(ver, page)
             else:
                 self.btn_newver.pack_forget()
 
-        def _update_found(self, ver, page):
-            self._update_page = safe_release_page(page)
+        def _app_update_found(self, ver, page):
+            self._app_update_page = safe_release_page(page)
             self.btn_newver.configure(text=f"⬆ New version v{ver}")
             if not self.btn_newver.winfo_ismapped():
                 self.btn_newver.pack(side="left", padx=(12, 0))
-            if not self._update_logged:
-                self._update_logged = True
+            if not self._app_update_logged:
+                self._app_update_logged = True
                 self._log(f"A new version, v{ver}, is available. Click '⬆ New version' at the top to get it.", "ok")
 
         # ------------------------------------------------------------- startup
@@ -3574,7 +3645,7 @@ if ctk is not None:
             if self.settings.get("show_guide", True):
                 self._show_guide()  # opened before the tools check, so the install question waits for it
             threading.Thread(target=self._detect_tools_worker, args=(True,), daemon=True).start()
-            self.after(4000, self._maybe_check_updates)
+            self.after(4000, self._app_update_maybe_check)
 
         def _clean_stale_temp(self):
             folder = self.save_var.get()
@@ -3593,7 +3664,7 @@ if ctk is not None:
         def _tools_ready(self, tools, versions, offer_install):
             self.tools = tools
             self.tool_versions = versions
-            missing = []
+            missing = []  # can't download anything without these (yt-dlp, FFmpeg)
             for key, chip in self.chips.items():
                 label = TOOLS[key]["label"]
                 if tools.get(key):
@@ -3602,7 +3673,8 @@ if ctk is not None:
                     chip.configure(text=f"● {label}: missing", text_color=RED)
                     missing.append(key)
                 else:
-                    chip.configure(text=f"○ {label}: optional (YouTube)", text_color=FAINT)
+                    chip.configure(text=f"● {label}: missing (YouTube)", text_color=AMBER_TEXT)
+            to_install = [k for k in AUTO_INSTALL if not tools.get(k)]  # the missing ones + Deno, in one go
             found = sum(1 for key in self.chips if tools.get(key))
             if missing:
                 self.btn_tools.configure(text=f"TOOLS  ● {len(missing)} missing  ▾", text_color=RED)
@@ -3611,34 +3683,48 @@ if ctk is not None:
             if tools.get("deno"):
                 self.btn_deno.grid_forget()
             if missing:
-                names = " and ".join(TOOLS[k]["label"] for k in missing)
+                names = join_names(TOOLS[k]["label"] for k in missing)
                 self.banner_text.configure(text=f"{names} {'is' if len(missing) == 1 else 'are'} missing. "
                                                 f"The app needs {'it' if len(missing) == 1 else 'them'} to download.")
                 self.banner_cmd.configure(state="normal")
                 self.banner_cmd.delete(0, "end")
-                self.banner_cmd.insert(0, "  &  ".join(winget_command(k) for k in missing))
+                self.banner_cmd.insert(0, "  &  ".join(winget_command(k) for k in to_install))
                 self.banner_cmd.configure(state="readonly")
                 self.banner.grid(row=3, column=0, sticky="ew", padx=24, pady=(10, 0))
-                for k in missing:
+                for k in to_install:
                     self._log(f"{TOOLS[k]['label']} not found. Install command: {winget_command(k)}", "warn")
                 if offer_install and not self.settings.get("install_declined"):
                     if self._guide_open():
-                        self._pending_install = missing  # ask after the guide is closed
+                        self._pending_install = to_install  # ask after the guide is closed
                     else:
-                        self._offer_install(missing)
+                        self._offer_install(to_install)
             else:
                 self.banner.grid_forget()
                 if self.settings.get("install_declined"):
                     self.settings.set("install_declined", False)
                 self._log("yt-dlp and FFmpeg found. Everything is ready.", "ok")
-                if self.link_var.get().strip():
+                if to_install and offer_install:
+                    # only Deno is missing (e.g. a PC set up by an older version): get it now, no question asked
+                    self._log("Getting Deno in the background (YouTube needs it for full quality, about a minute)…")
+                    self.chips["deno"].configure(text="○ Deno: installing…", text_color=FAINT)
+                    self._install(to_install)
+                elif self.link_var.get().strip():
                     self._schedule_preview(0)
+            self._check_for_update()
 
-        def _offer_install(self, missing):
-            names = " and ".join(TOOLS[k]["label"] for k in missing)
-            if messagebox.askyesno(APP_NAME, f"{names} {'is' if len(missing) == 1 else 'are'} needed to download "
-                                             f"videos.\n\nInstall automatically now? (about 1-2 minutes)", parent=self):
-                self._install(missing)
+        def _offer_install(self, keys):
+            req = [TOOLS[k]["label"] for k in keys if TOOLS[k]["required"]]
+            extra = [TOOLS[k]["label"] for k in keys if not TOOLS[k]["required"]]
+            lines = []
+            if req:
+                lines.append(f"{join_names(req)} {'is' if len(req) == 1 else 'are'} needed to download videos.")
+            if extra:
+                lines.append(f"{join_names(extra)} {'is' if len(extra) == 1 else 'are'} needed for full-quality "
+                             f"YouTube.")
+            minutes = "2-3" if extra else "1-2"
+            if messagebox.askyesno(APP_NAME, "\n".join(lines) + f"\n\nInstall automatically now? (about {minutes} "
+                                   f"minutes)", parent=self):
+                self._install(keys)
             else:
                 self.settings.set("install_declined", True)  # don't ask on every launch; the banner stays
                 self._log("OK. Use 'Install automatically' in the yellow bar whenever you're ready.", "warn")
@@ -3738,7 +3824,7 @@ if ctk is not None:
             if self.installing or self.busy:
                 return
             if keys is None:
-                keys = [k for k in TOOLS if TOOLS[k]["required"] and not self.tools.get(k)]
+                keys = [k for k in AUTO_INSTALL if not self.tools.get(k)]
             if not keys:
                 return
             self.installing = True
@@ -3764,6 +3850,7 @@ if ctk is not None:
             if not ytdlp:
                 self._install(["yt-dlp"])
                 return
+            self._set_update_dot("")
             self.installing = True
             self.btn_update.configure(state="disabled", text="Updating…")
 
@@ -3790,7 +3877,49 @@ if ctk is not None:
         def _update_done(self):
             self.installing = False
             self.btn_update.configure(state="normal", text="Update downloader")
+            self._set_update_dot("")  # updated, or already the newest its installer offers: no dot until next start
             threading.Thread(target=self._detect_tools_worker, args=(False,), daemon=True).start()
+
+        # ------------------------------------------------------------- "Update downloader" red dot
+        def _dot_image(self, color, size=8):
+            """Small round dot for a button (drawn big and shrunk, so the edge is smooth). None if Pillow is missing."""
+            if Image is None:
+                return None
+            try:
+                from PIL import ImageDraw
+                big = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+                ImageDraw.Draw(big).ellipse((0, 0, 63, 63), fill=color)
+                small = big.resize((size * 2, size * 2), Image.LANCZOS)
+                return ctk.CTkImage(light_image=small, dark_image=small, size=(size, size))
+            except Exception:
+                return None
+
+        def _check_for_update(self):
+            """Once per start: ask GitHub for the newest yt-dlp in the background; a red dot appears if it's newer."""
+            current = self.tool_versions.get("yt-dlp")
+            if self._update_checked or not self.tools.get("yt-dlp") or not current:
+                return
+            self._update_checked = True
+
+            def work():
+                latest = latest_ytdlp_version()
+                if is_newer_version(latest, current):
+                    self.ui(self._set_update_dot, latest, current)
+            threading.Thread(target=work, daemon=True).start()
+
+        def _set_update_dot(self, latest, current=""):
+            """Show (latest = the newer version) or hide (latest = '') the red dot on 'Update downloader'."""
+            self.update_latest = latest
+            if latest:
+                if self._update_dot_img is not None:
+                    self.btn_update.configure(image=self._update_dot_img, compound="right")
+                else:
+                    self.btn_update.configure(text="● Update downloader")
+                self._log(f"A newer yt-dlp is out ({current} → {latest}). Click 'Update downloader' to get it.", "warn")
+            else:
+                self.btn_update.configure(image=None, require_redraw=True)  # CTk only drops an image on a redraw
+                if self.btn_update.cget("text") == "● Update downloader":
+                    self.btn_update.configure(text="Update downloader")
 
         # ------------------------------------------------------------- folder
         def _browse(self):

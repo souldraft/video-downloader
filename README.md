@@ -42,7 +42,7 @@ If the app is useful to you, you can **donate ₹20 to ₹300 by UPI** (GPay, Ph
 | **Logins** | "Browser login" uses your browser's cookies for sites that need you logged in |
 | **Screen recorder** | Records the full screen as one MP4 with PC sound and/or your microphone, kept in sync, with an optional camera bubble or background-free cutout, and pause/resume |
 | **Safety** | Blocks dangerous links, checks every file is real video, and scans it with Microsoft Defender |
-| **Easy setup** | Installs yt-dlp and FFmpeg for you if they're missing (winget, or a GitHub download as backup) |
+| **Easy setup** | Installs yt-dlp, FFmpeg and Deno for you if they're missing (winget, or a GitHub download as backup) |
 
 ---
 
@@ -87,7 +87,7 @@ Tip: choose the link **without** `video_`, `audio_`, `chunklist` or `720p` in it
 ### Live streams, logins, limits
 - **Recorded lives / replays**: paste the replay link like any video. **Currently live**: download the replay after it ends.
 - **Sites that need a login**: log in with your browser (Firefox works best) and pick it under **BROWSER LOGIN**.
-- **YouTube** needs [Deno](https://deno.com/) for full quality. The app shows an **Install Deno** button when you paste a YouTube link.
+- **YouTube** needs [Deno](https://deno.com/) for full quality. The app installs it automatically with yt-dlp and FFmpeg. If that fails, an **Install Deno** button appears when you paste a YouTube link.
 - **DRM-protected services** (Netflix, Prime Video, JioHotstar, Disney+, Spotify) can't be downloaded, and the app doesn't try.
 
 ---
@@ -119,8 +119,8 @@ Only download or record what you're allowed to: your own videos, content the own
 |---|---|
 | "Windows protected your PC" when opening the .exe | The app isn't code-signed yet. Click **More info** → **Run anyway** |
 | Link expired or blocked (403) | Copy a fresh link from the page (stream links expire) |
-| A site stopped working | Click **Update downloader** (updates yt-dlp) |
-| "yt-dlp and FFmpeg are missing" | Click **Install automatically** in the yellow bar, or run `winget install --id yt-dlp.yt-dlp -e` and `winget install --id Gyan.FFmpeg -e` |
+| A site stopped working | Click **Update downloader** (updates yt-dlp). A red dot on it means a newer version is out |
+| "yt-dlp and FFmpeg are missing" | Click **Install automatically** in the yellow bar (it adds Deno for YouTube too), or run `winget install --id yt-dlp.yt-dlp -e` and `winget install --id Gyan.FFmpeg -e` |
 | Chrome/Edge login error | Close the browser completely, or use Firefox under **BROWSER LOGIN** |
 | Video won't play on an old TV/phone | Choose **Most compatible (H.264)** |
 | Recording has no PC sound | Check that your speakers/headphones are the default output in Windows Sound settings, and that the PC sound icon on the bar is lit |
@@ -160,7 +160,7 @@ Self-test: `python VideoDownloader.py --selftest`
 | `CHANGELOG.md` | What changed in each version |
 | `docs/` | The website (GitHub Pages) and screenshots |
 
-**Tech:** Python 3.12 · customtkinter · Pillow · soundcard · NumPy · segno · ONNX Runtime · PyInstaller · yt-dlp · FFmpeg · (optional) Deno. Licences: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+**Tech:** Python 3.12 · customtkinter · Pillow · soundcard · NumPy · segno · ONNX Runtime · PyInstaller · yt-dlp · FFmpeg · Deno. Licences: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 
 ---
 

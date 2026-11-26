@@ -8,13 +8,24 @@
 - The support ID at the top no longer shows a plan ("Free plan" is gone). The Support form's "Payment or licence" subject is now "Donation question".
 - The website's pricing section is now a donate box with the same tick box and QR codes (no cookies or storage, and it starts unticked after Back/Forward too), and the terms, refund and privacy pages describe donations instead of sales. The licence thank-you page was removed.
 - New small dependency: `segno` (BSD-3-Clause) draws the QR codes. `build.bat` installs it.
+- **Support messages now send from the app.** The support relay (Google Apps Script) is live and its link is set in `SUPPORT_URL`, so the 💬 Support form emails the developer directly, with the screenshot attached.
+
+**Tested:** 10 new self-tests (UPI ID check, ₹20–₹300 limits, UPI link format and payment note, the agreed tick-box wording, a bad ID refused, QR picture made, the UPI ID is set), all passing. 13/13 checks on the real window: opens unticked; QR, UPI ID and Copy off until ticked (a disabled Copy copies nothing); ticking shows them; Copy copies the UPI ID; picking ₹100 updates the QR; unticking hides them again; reopening starts unticked; nothing saved to settings. The website box passed the same checks in Chrome (desktop and phone), plus a reload starts unticked and nothing is stored. The QR codes in the app window, on the website and in all five picture files were decoded and matched the UPI link for each amount. Shiva scanned a test QR with his UPI app and saw his name. Not yet tested: the Windows .exe and a real payment.
+
+**New: Deno comes with the first install**
+- On a new PC, the first-start question and **Install automatically** now get yt-dlp, FFmpeg **and Deno** in one go (Deno is the free helper YouTube needs for full quality). The question says: "yt-dlp and FFmpeg are needed to download videos. Deno is needed for full-quality YouTube."
+- On a PC that already has yt-dlp and FFmpeg but no Deno (set up by an older version), the app gets Deno in the background when it starts, without asking, and says so in the log.
+- The TOOLS list no longer says "optional". If Deno couldn't be installed, it shows **● Deno: missing (YouTube)** in amber. Only yt-dlp and FFmpeg block downloading, so other sites still work, and the **Install Deno (for YouTube)** button under the preview stays as the fallback.
+
+**New: red dot on Update downloader**
+- Once per start the app asks GitHub for the newest yt-dlp (one small request to github.com/yt-dlp/yt-dlp/releases/latest; no account or API key). If it's newer than the installed one, a **red dot** appears inside **Update downloader**, and the log says "A newer yt-dlp is out (old → new). Click 'Update downloader' to get it."
+- Clicking **Update downloader** removes the dot. Offline, an unreadable version, or a nightly yt-dlp build: no dot.
+
+**Tested:** 9 new self-tests (Deno installed with yt-dlp and FFmpeg, only those two block downloading, name lists, newer / same / hotfix / nightly / unreadable versions, reading the version from GitHub's address), all passing; the live check read 2026.11.23 from GitHub. On the real window with pretend tool states: new PC → one question naming all three, then yt-dlp, FFmpeg and Deno installed in one go; older PC with only Deno missing → Deno installed with no question; newer yt-dlp → red dot and the log line; after Update downloader → dot gone; same version → no dot; the button keeps its size. Not yet tested: the Windows .exe and a real Deno download on a fresh PC.
 
 **New: update notifications**
 - Once a day the app asks GitHub for the newest release. If it's newer than yours, a green **⬆ New version v…** button appears at the top; clicking it opens the release page. Nothing personal is sent. Turn it off with **Check for new versions** under **TOOLS ▾**.
 - Tested: 8 self-tests (version reading, newer/older, a local fake GitHub, only this app's own release page is ever opened, pre-releases ignored, offline is quiet) and 9 window checks (button shows, opens the right page, at most one check a day, switching it off hides it and is remembered). Also checked against the real GitHub: it reads the published v2.0.0 correctly.
-- **Support messages now send from the app.** The support relay (Google Apps Script) is live and its link is set in `SUPPORT_URL`, so the 💬 Support form emails the developer directly, with the screenshot attached.
-
-**Tested:** 10 new self-tests (UPI ID check, ₹20–₹300 limits, UPI link format and payment note, the agreed tick-box wording, a bad ID refused, QR picture made, the UPI ID is set), all passing. 13/13 checks on the real window: opens unticked; QR, UPI ID and Copy off until ticked (a disabled Copy copies nothing); ticking shows them; Copy copies the UPI ID; picking ₹100 updates the QR; unticking hides them again; reopening starts unticked; nothing saved to settings. The website box passed the same checks in Chrome (desktop and phone), plus a reload starts unticked and nothing is stored. The QR codes in the app window, on the website and in all five picture files were decoded and matched the UPI link for each amount. Shiva scanned a test QR with his UPI app and saw his name. Not yet tested: the Windows .exe and a real payment.
 
 ---
 

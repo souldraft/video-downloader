@@ -52,7 +52,7 @@ White theme, Segoe UI, green accent `#1A7F37`, red for stop/cancel, light-grey p
 - Quality presets: Best (`bv*+ba/b`, `-S res,ext:mp4:m4a`), Up to 1080p, Up to 720p, Most compatible (H.264), Audio only (MP3). Always one MP4 (`--merge-output-format mp4 --remux-video mp4`).
 - Low-quality HLS variant links (`.ism/…-audio_…-video_…m3u8`, Wowza `chunklist*.m3u8`) → try the master playlist, **keeping the query string**. Warn below 720p.
 - `-N 16 --retries 10 --fragment-retries 10 --socket-timeout 30 --no-mtime --no-playlist`; one smooth progress bar that never goes backwards; temp files in `.vd-temp-<id>`; Cancel kills the process tree and deletes partial files. All external tools run hidden on background threads; widgets only touched on the main thread.
-- YouTube needs Deno for full quality (offer **Install Deno**). Plain-English errors with **Show details** for the full log.
+- YouTube needs Deno for full quality: it's installed together with yt-dlp and FFmpeg on first setup (and in the background if only Deno is missing); **Install Deno** stays as the fallback button. Once per start the app asks GitHub for the newest yt-dlp and shows a **red dot** on **Update downloader** when it's newer. Plain-English errors with **Show details** for the full log.
 
 ## Safety (never weaken)
 1. Link checks: only http/https; block dangerous file types in the path or a parameter, `user@host` links, control characters, absurd lengths; warn on punycode, bare IPs, plain http.
