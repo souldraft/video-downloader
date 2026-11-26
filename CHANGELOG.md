@@ -8,6 +8,7 @@
 - The support ID at the top no longer shows a plan ("Free plan" is gone). The Support form's "Payment or licence" subject is now "Donation question".
 - The website's pricing section is now a donate box with the same tick box and QR codes (no cookies or storage, and it starts unticked after Back/Forward too), and the terms, refund and privacy pages describe donations instead of sales. The licence thank-you page was removed.
 - New small dependency: `segno` (BSD-3-Clause) draws the QR codes. `build.bat` installs it.
+- **Support messages now send from the app.** The support relay (Google Apps Script) is live and its link is set in `SUPPORT_URL`, so the 💬 Support form emails the developer directly, with the screenshot attached.
 
 **Tested:** 10 new self-tests (UPI ID check, ₹20–₹300 limits, UPI link format and payment note, the agreed tick-box wording, a bad ID refused, QR picture made, the UPI ID is set), all passing. 13/13 checks on the real window: opens unticked; QR, UPI ID and Copy off until ticked (a disabled Copy copies nothing); ticking shows them; Copy copies the UPI ID; picking ₹100 updates the QR; unticking hides them again; reopening starts unticked; nothing saved to settings. The website box passed the same checks in Chrome (desktop and phone), plus a reload starts unticked and nothing is stored. The QR codes in the app window, on the website and in all five picture files were decoded and matched the UPI link for each amount. Shiva scanned a test QR with his UPI app and saw his name. Not yet tested: the Windows .exe and a real payment.
 
