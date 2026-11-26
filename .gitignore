@@ -1,0 +1,25 @@
+# Build output
+.venv/
+build/
+dist/
+*.spec
+__pycache__/
+*.pyc
+
+# Personal data created by the app (never upload)
+settings.json
+settings.json.tmp
+tools/
+
+# Downloads / recordings / partial files
+*.part
+*.ytdl
+.vd-temp-*/
+*.mp4
+*.mkv
+*.mp3
+
+# Leftovers and local notes
+.write-test-*
+*.bak
+GITHUB_PUBLISH_PROMPT.md
