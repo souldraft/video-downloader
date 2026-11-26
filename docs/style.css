@@ -149,3 +149,10 @@ details p { margin: 10px 0 0; color: var(--muted); }
   section { padding: 40px 0; }
   .nav { gap: 14px; }
 }
+
+/* GitHub link in the header (official GitHub mark, links to my repositories) */
+.nav { align-items: center; }
+.nav a.gh { display: inline-flex; align-items: center; gap: 7px; color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 5px 11px; font-weight: 600; }
+.nav a.gh:hover { background: var(--surface); }
+.nav a.gh img { display: block; }
+.eyebrow { display: inline-block; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--green); margin: 0 0 14px; }
