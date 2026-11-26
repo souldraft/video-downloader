@@ -744,11 +744,15 @@ SUPPORT_EMAIL = "vteam732@gmail.com"
 SUPPORT_URL = "https://script.google.com/macros/s/AKfycbzA3HB7hV-zmxkvKJ0OFz1NisE3Zg7Y-iAioJdbe_nyguZ_z8chWp63EAdrA4JVs0mASg/exec" # Google Apps Script web-app URL (ends in /exec), see support-server/SETUP.md. Empty = email fallback.
 SUPPORT_APP_KEY = "vd-support-v1"  # not a secret, only stops random web bots; must match APP_KEY in support-server/Code.gs
 # Donations: everything in the app is free; donating is optional. Paid by UPI (GPay, PhonePe, Paytm, BHIM...).
-DONATE_UPI_ID = ""  # e.g. "name@okaxis". Empty = the Donate dialog sends people to the website instead.
+DONATE_UPI_ID = "shivaabhi7796-6@okicici"  # empty = the Donate dialog sends people to the website instead
 DONATE_PAYEE = "Video Downloader"  # shown in the UPI app next to the bank account's own name
 DONATE_AMOUNTS = (20, 50, 100, 200, 300)  # rupees; fixed buttons keep every donation between ₹20 and ₹300
 DONATE_DEFAULT = 50
 DONATE_PAGE = "https://souldraft.github.io/video-downloader/#donate"
+DONATE_NOTE = "Video Downloader voluntary donation"  # the payment note people see in their UPI app
+# Must be ticked before the QR / UPI ID / Copy are shown. Never saved: it starts unticked every time.
+DONATE_CONSENT = ("I'm giving this voluntarily, from my own bank account, to support the developer. I understand it "
+                  "doesn't buy or unlock anything, and it's not refundable")
 SUPPORT_SUBJECTS = ("Download problem", "Screen recording problem", "Donation question", "Feature request",
                     "Something else")
 SUPPORT_IMAGE_MAX_SIDE = 2560
@@ -836,7 +840,7 @@ def donate_amount(amount) -> int:
     return max(min(DONATE_AMOUNTS), min(max(DONATE_AMOUNTS), value))
 
 
-def upi_link(upi_id: str, amount, payee: str = DONATE_PAYEE, note: str = f"{APP_NAME} donation") -> str:
+def upi_link(upi_id: str, amount, payee: str = DONATE_PAYEE, note: str = DONATE_NOTE) -> str:
     """upi://pay link with the amount filled in; every UPI app (GPay, PhonePe, Paytm, BHIM) understands it."""
     if not is_upi_id(upi_id):
         raise ValueError("not a UPI ID")
@@ -2424,6 +2428,10 @@ def selftest() -> int:
     check("UPI link has the ID, ₹100 and INR",
           link.startswith("upi://pay?pa=shiva.k@okaxis&") and "&am=100.00&" in link and "&cu=INR" in link)
     check("UPI link note and name are URL-safe", " " not in link and "pn=Video%20Downloader" in link)
+    check("UPI payment note says 'Video Downloader voluntary donation'",
+          urllib.parse.unquote(link.split("&tn=")[1]) == "Video Downloader voluntary donation")
+    check("consent text is the agreed wording", DONATE_CONSENT.startswith("I'm giving this voluntarily, from my own "
+          "bank account") and DONATE_CONSENT.endswith("it's not refundable"))
     try:
         upi_link("not an id", 50)
         check("a bad UPI ID is refused", False)
@@ -2434,7 +2442,7 @@ def selftest() -> int:
         check("QR code is a PNG picture", png[:8] == b"\x89PNG\r\n\x1a\n" and len(png) > 300)
     except ImportError:
         print("  info  segno not installed here; QR picture test skipped (the Donate dialog shows the UPI ID)")
-    check("DONATE_UPI_ID is empty or a real UPI ID", not DONATE_UPI_ID or is_upi_id(DONATE_UPI_ID))
+    check("DONATE_UPI_ID is a real UPI ID", is_upi_id(DONATE_UPI_ID))
     print("\n" + ("ALL TESTS PASSED" if not failures else f"{len(failures)} TEST(S) FAILED: {', '.join(failures)}"))
     return 0 if not failures else 1
 
@@ -3066,12 +3074,12 @@ if ctk is not None:
         def _show_donate(self):
             if self._focus_existing("_donate_win"):
                 return
-            win = self._donate_win = self._dialog("Donate", "520x660")
+            win = self._donate_win = self._dialog("Donate", "520x760")
             pad = {"padx": 26}
-            ctk.CTkLabel(win, text="❤  Support Video Downloader", font=self.f_h2, text_color=TEXT
+            ctk.CTkLabel(win, text="❤  Buy me a chai", font=self.f_h2, text_color=TEXT
                          ).pack(anchor="w", pady=(20, 0), **pad)
-            ctk.CTkLabel(win, text="Everything in the app is free, including the screen recorder. If it's useful to "
-                                   "you, a small donation helps me keep it updated. It's completely optional.",
+            ctk.CTkLabel(win, text="A small tip to the developer. Everything in the app is free, including the "
+                                   "screen recorder, and it stays exactly the same whether you donate or not.",
                          font=self.f_small, text_color=MUTED, wraplength=468, justify="left"
                          ).pack(anchor="w", pady=(4, 14), **pad)
             upi = DONATE_UPI_ID.strip()
@@ -3089,16 +3097,60 @@ if ctk is not None:
                                          unselected_color=SURFACE, unselected_hover_color=SURFACE_2,
                                          fg_color=SURFACE, text_color=TEXT, corner_radius=6)
             seg.pack(fill="x", **pad)
+            # consent tick box: local variable only, never written to settings, so it starts unticked every time
+            agreed = tk.BooleanVar(value=False)
+            consent = ctk.CTkFrame(win, fg_color=SURFACE, border_color=BORDER, border_width=1, corner_radius=8)
+            consent.pack(fill="x", pady=(14, 0), **pad)
+            tick = ctk.CTkCheckBox(consent, text="", variable=agreed, onvalue=True, offvalue=False, width=24,
+                                   checkbox_width=22, checkbox_height=22, fg_color=GREEN, hover_color=GREEN_HOVER,
+                                   border_color=MUTED, corner_radius=4)
+            tick.pack(side="left", anchor="n", padx=(12, 6), pady=12)
+            consent_lbl = ctk.CTkLabel(consent, text=DONATE_CONSENT, font=self.f_small, text_color=TEXT,
+                                       wraplength=400, justify="left", anchor="w", cursor="hand2")
+            consent_lbl.pack(side="left", fill="x", expand=True, padx=(0, 12), pady=10)
+            consent_lbl.bind("<Button-1>", lambda e: tick.toggle())
             qr_box = ctk.CTkFrame(win, fg_color="#FFFFFF", border_color=BORDER, border_width=1, corner_radius=8)
-            qr_box.pack(pady=(16, 6))
+            qr_box.pack(pady=(14, 6))
             qr_lbl = ctk.CTkLabel(qr_box, text="", width=240, height=240, font=self.f_ui, text_color=TEXT,
                                   wraplength=220)
-            qr_lbl.pack(padx=12, pady=12)
+            # placeholder shown instead of the QR until the box is ticked (two widgets: swapping a CTkLabel's
+            # image back to None leaves a dead Tk image behind)
+            locked_lbl = ctk.CTkLabel(qr_box, text="Tick the box above\nto show the QR code", width=240, height=240,
+                                      font=self.f_ui, text_color=FAINT, fg_color=SURFACE, corner_radius=6)
             how = ctk.CTkLabel(win, text="", font=self.f_small, text_color=MUTED, wraplength=468, justify="center")
             how.pack(**pad)
+            row = ctk.CTkFrame(win, fg_color="transparent")
+            row.pack(pady=(12, 0), **pad)
+            id_lbl = ctk.CTkLabel(row, text="", font=self.f_mono, text_color=TEXT)
+            id_lbl.pack(side="left")
+            copied = ctk.CTkLabel(row, text="", font=self.f_small, text_color=GREEN)
+
+            def copy_id():
+                if not agreed.get():
+                    return
+                self.clipboard_clear()
+                self.clipboard_append(upi)
+                copied.configure(text="  copied ✓")
+                win.after(1500, lambda: copied.configure(text="") if copied.winfo_exists() else None)
+            copy_btn = self._button(row, "Copy", copy_id, width=70, height=30, font=self.f_small)
+            copy_btn.pack(side="left", padx=(10, 0))
+            copied.pack(side="left")
+            win._donate_parts = {"agreed": agreed, "tick": tick, "qr": qr_lbl, "locked": locked_lbl,
+                                 "copy": copy_btn, "id": id_lbl, "how": how, "seg": seg}  # for the window test
 
             def show(_value=None):
                 amount = donate_amount(choice.get().lstrip("₹"))
+                if not agreed.get():  # QR, UPI ID and Copy stay off until the box is ticked
+                    qr_lbl.pack_forget()
+                    locked_lbl.pack(padx=12, pady=12)
+                    how.configure(text=f"Amount: ₹{amount}")
+                    id_lbl.configure(text="UPI ID: shown after you tick the box", text_color=FAINT)
+                    copy_btn.configure(state="disabled")
+                    return
+                locked_lbl.pack_forget()
+                qr_lbl.pack(padx=12, pady=12)
+                id_lbl.configure(text=f"UPI ID: {upi}", text_color=TEXT)
+                copy_btn.configure(state="normal")
                 link = upi_link(upi, amount)
                 try:
                     import io as _io
@@ -3107,24 +3159,12 @@ if ctk is not None:
                     qr_lbl.configure(image=self._qr_img, text="")
                     how.configure(text=f"Scan with GPay, PhonePe, Paytm or any UPI app to give ₹{amount}.")
                 except Exception:  # segno or Pillow missing: the UPI ID still works by hand
-                    qr_lbl.configure(image=None, text=f"Pay ₹{amount}\nto {upi}\nin any UPI app")
+                    qr_lbl.configure(text=f"Pay ₹{amount}\nto {upi}\nin any UPI app")
                     how.configure(text="Open your UPI app, choose Pay to UPI ID, and enter the ID below.")
             seg.configure(command=show)
+            tick.configure(command=show)
             show()
-            row = ctk.CTkFrame(win, fg_color="transparent")
-            row.pack(pady=(12, 0), **pad)
-            ctk.CTkLabel(row, text=f"UPI ID: {upi}", font=self.f_mono, text_color=TEXT).pack(side="left")
-            copied = ctk.CTkLabel(row, text="", font=self.f_small, text_color=GREEN)
-
-            def copy_id():
-                self.clipboard_clear()
-                self.clipboard_append(upi)
-                copied.configure(text="  copied ✓")
-                win.after(1500, lambda: copied.configure(text="") if copied.winfo_exists() else None)
-            self._button(row, "Copy", copy_id, width=70, height=30, font=self.f_small).pack(side="left", padx=(10, 0))
-            copied.pack(side="left")
-            ctk.CTkLabel(win, text="Donations are voluntary and don't unlock anything; the app stays the same. "
-                                   "Thank you! 🙏", font=self.f_small, text_color=FAINT, wraplength=468,
+            ctk.CTkLabel(win, text="Thank you! 🙏", font=self.f_small, text_color=FAINT, wraplength=468,
                          justify="left").pack(anchor="w", pady=(14, 0), **pad)
             link_lbl = ctk.CTkLabel(win, text="Open the donate page on the website ↗", font=self.f_small,
                                     text_color=GREEN, cursor="hand2")

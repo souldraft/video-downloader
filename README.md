@@ -24,7 +24,7 @@ It's built on [yt-dlp](https://github.com/yt-dlp/yt-dlp) and [FFmpeg](https://ff
 
 **Every feature is free**, including the screen recorder, the camera bubble / cutout and pause. There's no paid version, trial or account.
 
-If the app is useful to you, you can **donate ₹20 to ₹300 by UPI** (GPay, PhonePe, Paytm…): click **❤ Donate** in the app, or use the [donate box on the website](https://souldraft.github.io/video-downloader/#donate). Donations are voluntary and don't unlock anything.
+If the app is useful to you, you can **donate ₹20 to ₹300 by UPI** (GPay, PhonePe, Paytm…): click **❤ Donate** in the app, or use the [donate box on the website](https://souldraft.github.io/video-downloader/#donate), tick the box to confirm it's a voluntary gift, then scan the QR code. Donations don't buy or unlock anything.
 
 ---
 
